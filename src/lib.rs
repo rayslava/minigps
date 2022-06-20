@@ -5,5 +5,10 @@
 //!
 //! Currently following files are supported:
 //! - POI.DAT
+//!
+//! The library allows conversion of POIs from and into `gpx::Waypoint` to work
+//! with GPX files.
+//!
+//! Usage example could be found at https://github.com/rayslava/minigps-conv
 
 pub mod poi;

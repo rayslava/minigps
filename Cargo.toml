@@ -19,8 +19,9 @@ codecov = { repository = "rayslava/minigps", branch = "master", service = "githu
 
 [dependencies]
 byteorder = { version = "1.4" }
-chrono = { version = "0.4" }
-gpx = { version = "0.8.6" }
+time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
+gpx = { version = "0.8.6", features = ["use-serde"], git = "https://github.com/georust/gpx", rev = "4bc9a6f904013efb0ee623eeacd24a0cf5c66431" }  # TODO: Switch to release when it's ready
+geo-types = { version = "0.7.5" }
 
 [dev-dependencies]
 assert_approx_eq = "1"

@@ -1,9 +1,11 @@
 //! Working with POI.DAT file
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
-use chrono::prelude::*;
+use geo_types::Point;
+use gpx::Time;
 use gpx::Waypoint;
-use std::convert::From;
+use std::convert::{From, Into};
 use std::io::{self, ErrorKind, Read, Write};
+use time::OffsetDateTime;
 
 /// Single POI
 ///
@@ -16,7 +18,7 @@ use std::io::{self, ErrorKind, Read, Write};
 #[derive(Debug, Clone, Copy)]
 pub struct POI {
     /// POI timestamp
-    timestamp: DateTime<Utc>,
+    timestamp: OffsetDateTime,
     /// Latitude
     lat: f64,
     /// Longtitude
@@ -30,8 +32,12 @@ impl POI {
         let lon = rdr.read_f64::<LittleEndian>()?;
         rdr.read_u64::<LittleEndian>()?; // Padding?
 
-        let naive = NaiveDateTime::from_timestamp(timeval, 0);
-        let timestamp: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+        //        let naive = NaiveDateTime::from_timestamp(timeval, 0);
+        //        let timestamp: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+        let timestamp = match OffsetDateTime::from_unix_timestamp(timeval) {
+            Ok(val) => val,
+            _ => OffsetDateTime::now_utc(),
+        };
         Ok(POI {
             timestamp,
             lat,
@@ -40,7 +46,7 @@ impl POI {
     }
 
     fn serialize(self, wr: &mut impl Write) -> io::Result<()> {
-        wr.write_i64::<LittleEndian>(self.timestamp.timestamp())?;
+        wr.write_i64::<LittleEndian>(self.timestamp.unix_timestamp())?;
         wr.write_f64::<LittleEndian>(self.lat)?;
         wr.write_f64::<LittleEndian>(self.lon)?;
         wr.write_u64::<LittleEndian>(0)?;
@@ -52,22 +58,21 @@ impl From<Waypoint> for POI {
     fn from(wpt: Waypoint) -> Self {
         POI {
             timestamp: match wpt.time {
-                Some(t) => {
-                    if let Ok(date) = t.format() {
-                        if let Ok(ts) = DateTime::parse_from_rfc3339(date.as_str()) {
-                            ts.into()
-                        } else {
-                            Utc::now()
-                        }
-                    } else {
-                        Utc::now()
-                    }
-                }
-                _ => Utc::now(),
+                Some(t) => t.into(),
+                _ => OffsetDateTime::now_utc(),
             },
             lat: wpt.point().y(),
             lon: wpt.point().x(),
         }
+    }
+}
+
+#[allow(clippy::from_over_into)]
+impl Into<Waypoint> for POI {
+    fn into(self) -> Waypoint {
+        let mut result = Waypoint::new(Point::new(self.lon, self.lat));
+        result.time = Some(Time::from(self.timestamp));
+        result
     }
 }
 
@@ -110,6 +115,7 @@ mod tests {
     use std::fs::File;
     use std::io::{BufReader, BufWriter};
     use std::path::PathBuf;
+    use time::macros::datetime;
 
     #[test]
     fn test_deserialize() -> Result<(), io::Error> {
@@ -117,7 +123,7 @@ mod tests {
         d.push("resources/testdata/POI.DAT");
         let mut f = File::open(&d)?;
         let v = POI::deserialize(&mut f)?;
-        assert_eq!(v.timestamp, Utc.ymd(2022, 1, 15).and_hms(6, 59, 15));
+        assert_eq!(v.timestamp, datetime!(2022-01-15 06:59:15 UTC));
         assert_approx_eq!(v.lat, 55.789, 0.001);
         assert_approx_eq!(v.lon, 37.536, 0.001);
 
@@ -142,7 +148,7 @@ mod tests {
     #[test]
     fn test_serialize() -> Result<(), io::Error> {
         let testpoi = POI {
-            timestamp: Utc.ymd(2022, 1, 15).and_hms(6, 59, 15),
+            timestamp: datetime!(2022-01-15 06:59:15 UTC),
             lat: 55.78938888888889,
             lon: 37.536833333333334,
         };
@@ -165,7 +171,7 @@ mod tests {
     #[test]
     fn test_write_many() -> Result<(), io::Error> {
         let testpoi = POI {
-            timestamp: Utc.ymd(2022, 1, 15).and_hms(6, 59, 15),
+            timestamp: datetime!(2022-01-15 06:59:15 UTC),
             lat: 55.78938888888889,
             lon: 37.536833333333334,
         };
@@ -195,7 +201,7 @@ mod tests {
     #[test]
     fn test_write_many_fail() -> Result<(), io::Error> {
         let testpoi = POI {
-            timestamp: Utc.ymd(2022, 1, 15).and_hms(6, 59, 15),
+            timestamp: datetime!(2022-01-15 06:59:15 UTC),
             lat: 55.78938888888889,
             lon: 37.536833333333334,
         };
@@ -214,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn test_convert() -> Result<(), io::Error> {
+    fn test_convert_poi_to_gpx() -> Result<(), io::Error> {
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("resources/testdata/test.gpx");
         let f = File::open(&d)?;
@@ -226,11 +232,23 @@ mod tests {
             let newpoi = POI::from(gpx.waypoints.remove(0));
             assert_approx_eq!(newpoi.lat, 55.789, 0.001);
             assert_approx_eq!(newpoi.lon, 37.536, 0.001);
-            assert_eq!(
-                newpoi.timestamp,
-                Utc.ymd(2022, 5, 22).and_hms_milli(20, 36, 54, 804)
-            );
+            assert_eq!(newpoi.timestamp, datetime!(2022-05-22 20:36:54.804 UTC));
         }
+        Ok(())
+    }
+
+    #[test]
+    fn test_convert_gpx_to_poi() -> Result<(), io::Error> {
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("resources/testdata/POI.DAT");
+        let mut f = File::open(&d)?;
+        let v = POI::deserialize(&mut f)?;
+        let w: Waypoint = v.into();
+
+        assert_eq!("2022-01-15T06:59:15Z", w.time.unwrap().format().unwrap());
+        assert_approx_eq!(w.point().y(), 55.789, 0.001);
+        assert_approx_eq!(w.point().x(), 37.536, 0.001);
+
         Ok(())
     }
 }
