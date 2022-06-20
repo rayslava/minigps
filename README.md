@@ -12,6 +12,7 @@ Aliexpress, like https://aliexpress.com/item/1005003479481773.html
 Currently following files are supported:
 - POI.DAT
 - AID.DAT
+- TRAIL.DAT
 
 The library allows conversion of POIs from and into `gpx::Waypoint` to work
 with GPX files.

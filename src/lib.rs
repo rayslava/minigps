@@ -6,6 +6,7 @@
 //! Currently following files are supported:
 //! - POI.DAT
 //! - AID.DAT
+//! - TRAIL.DAT
 //!
 //! The library allows conversion of POIs from and into `gpx::Waypoint` to work
 //! with GPX files.
@@ -14,3 +15,4 @@
 
 pub mod aid;
 pub mod poi;
+pub mod trail;

@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn test_serialize() -> Result<(), io::Error> {
-        let testpoi = AID {
+        let testaid = AID {
             lat: 55.78781266666667,
             lon: 37.5387715,
             elev: 154.7,
@@ -90,7 +90,7 @@ mod tests {
         {
             let bytes_ref: &mut [u8] = &mut bytes;
             let mut writer = BufWriter::new(bytes_ref);
-            testpoi.serialize(&mut writer)?;
+            testaid.serialize(&mut writer)?;
         }
         assert_eq!(bytes, refbytes);
 
