@@ -14,6 +14,9 @@ repository = "https://github.com/rayslava/minigps"
 
 [badges]
 maintenance = { status = "actively-developed" }
+github = { repository = "rayslava/minigps", workflow = "rust.yml" }
+codecov = { repository = "rayslava/minigps", branch = "master", service = "github" }
+
 
 [dependencies]
 byteorder = { version = "1.4" }
