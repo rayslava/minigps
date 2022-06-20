@@ -1,0 +1,23 @@
+[package]
+name = "minigps"
+version = "0.1.0"
+edition = "2018"
+description = "Library for MiniGPS file format support"
+authors = ["Slava Barinov <rayslava@gmail.com>"]
+license = "MIT"
+keywords = ["gps", "minigps", "geo", "geodata"]
+categories = ["encoding"]
+documentation = "https://docs.rs/minigps"
+readme = "README.md"
+homepage = "https://github.com/rayslava/minigps"
+repository = "https://github.com/rayslava/minigps"
+
+[badges]
+maintenance = { status = "actively-developed" }
+
+[dependencies]
+byteorder = { version = "1.4" }
+chrono = { version = "0.4" }
+
+[dev-dependencies]
+assert_approx_eq = "1"

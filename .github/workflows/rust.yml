@@ -1,0 +1,73 @@
+on: push
+
+name: CI Build
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Run static analyzer
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
+      - name: Build release version
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release
+
+      - name: Collect test coverage
+        uses: actions-rs/tarpaulin@v0.1
+        if: ${{ matrix.rust == 'stable' }}
+        with:
+          version: '0.16.0'
+          out-type: Xml
+          run-types: 'Tests'
+          args: '--force-clean -- --test-threads 1'
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v1.0.2
+        if: ${{ matrix.rust == 'stable' }}
+        with:
+          token: ${{ secrets.CODECOV_SECRET }}
+
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        if: ${{ matrix.rust == 'stable' }}
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
