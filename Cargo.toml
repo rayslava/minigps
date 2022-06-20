@@ -1,6 +1,6 @@
 [package]
 name = "minigps"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2018"
 description = "Library for MiniGPS file format support"
 authors = ["Slava Barinov <rayslava@gmail.com>"]
