@@ -1,6 +1,8 @@
 //! Working with POI.DAT file
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use chrono::prelude::*;
+use gpx::Waypoint;
+use std::convert::From;
 use std::io::{self, ErrorKind, Read, Write};
 
 /// Single POI
@@ -46,6 +48,29 @@ impl POI {
     }
 }
 
+impl From<Waypoint> for POI {
+    fn from(wpt: Waypoint) -> Self {
+        POI {
+            timestamp: match wpt.time {
+                Some(t) => {
+                    if let Ok(date) = t.format() {
+                        if let Ok(ts) = DateTime::parse_from_rfc3339(date.as_str()) {
+                            ts.into()
+                        } else {
+                            Utc::now()
+                        }
+                    } else {
+                        Utc::now()
+                    }
+                }
+                _ => Utc::now(),
+            },
+            lat: wpt.point().y(),
+            lon: wpt.point().x(),
+        }
+    }
+}
+
 /// Read a typical POI.DAT file and convert it into `Vec<POI>`
 pub fn read_pois(mut rdr: impl Read) -> io::Result<Vec<POI>> {
     let mut pois: Vec<POI> = Vec::new();
@@ -62,15 +87,15 @@ pub fn read_pois(mut rdr: impl Read) -> io::Result<Vec<POI>> {
 }
 
 /// Write a POI.DAT file with up to 16 POIs
-pub fn write_pois(pois: Vec<POI>, mut wr: impl Write) -> io::Result<()> {
+pub fn write_pois(pois: Vec<POI>, wr: &mut impl Write) -> io::Result<()> {
     if pois.len() > 16 {
         return Err(io::Error::new(ErrorKind::Other, "Too main POIs"));
     }
     let pad_size = 16 - pois.len(); // We have to pad file up to 512 bytes
     for p in pois {
-        p.serialize(&mut wr)?;
+        p.serialize(wr)?;
     }
-    for _ in 1..pad_size * 4 {
+    for _ in 0..pad_size * 4 {
         wr.write_u64::<LittleEndian>(0)?;
     }
 
@@ -81,8 +106,9 @@ pub fn write_pois(pois: Vec<POI>, mut wr: impl Write) -> io::Result<()> {
 mod tests {
     use super::*;
     use assert_approx_eq::assert_approx_eq;
+    use gpx::{read, Gpx};
     use std::fs::File;
-    use std::io::BufWriter;
+    use std::io::{BufReader, BufWriter};
     use std::path::PathBuf;
 
     #[test]
@@ -94,6 +120,7 @@ mod tests {
         assert_eq!(v.timestamp, Utc.ymd(2022, 1, 15).and_hms(6, 59, 15));
         assert_approx_eq!(v.lat, 55.789, 0.001);
         assert_approx_eq!(v.lon, 37.536, 0.001);
+
         Ok(())
     }
 
@@ -108,6 +135,7 @@ mod tests {
         assert_approx_eq!(v[0].lon, 37.536, 0.001);
         assert_approx_eq!(v[15].lat, 10.000, 0.0001);
         assert_approx_eq!(v[15].lon, 0.0, 0.001);
+
         Ok(())
     }
 
@@ -130,6 +158,7 @@ mod tests {
             testpoi.serialize(&mut writer)?;
         }
         assert_eq!(bytes, refbytes);
+
         Ok(())
     }
 
@@ -179,6 +208,28 @@ mod tests {
             let result = write_pois(testvec, &mut writer).map_err(|e| e.kind());
             let expected = Err(io::ErrorKind::Other);
             assert_eq!(expected, result);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_convert() -> Result<(), io::Error> {
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("resources/testdata/test.gpx");
+        let f = File::open(&d)?;
+        let reader = BufReader::new(f);
+
+        // read takes any io::Read and gives a Result<Gpx, Error>.
+        {
+            let mut gpx: Gpx = read(reader).unwrap();
+            let newpoi = POI::from(gpx.waypoints.remove(0));
+            assert_approx_eq!(newpoi.lat, 55.789, 0.001);
+            assert_approx_eq!(newpoi.lon, 37.536, 0.001);
+            assert_eq!(
+                newpoi.timestamp,
+                Utc.ymd(2022, 5, 22).and_hms_milli(20, 36, 54, 804)
+            );
         }
         Ok(())
     }

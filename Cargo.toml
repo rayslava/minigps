@@ -17,10 +17,10 @@ maintenance = { status = "actively-developed" }
 github = { repository = "rayslava/minigps", workflow = "ci" }
 codecov = { repository = "rayslava/minigps", branch = "master", service = "github" }
 
-
 [dependencies]
 byteorder = { version = "1.4" }
 chrono = { version = "0.4" }
+gpx = { version = "0.8.6" }
 
 [dev-dependencies]
 assert_approx_eq = "1"
