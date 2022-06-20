@@ -32,8 +32,6 @@ impl POI {
         let lon = rdr.read_f64::<LittleEndian>()?;
         rdr.read_u64::<LittleEndian>()?; // Padding?
 
-        //        let naive = NaiveDateTime::from_timestamp(timeval, 0);
-        //        let timestamp: DateTime<Utc> = DateTime::from_utc(naive, Utc);
         let timestamp = match OffsetDateTime::from_unix_timestamp(timeval) {
             Ok(val) => val,
             _ => OffsetDateTime::now_utc(),
