@@ -24,7 +24,7 @@ pub struct AID {
 }
 
 impl AID {
-    fn deserialize(rdr: &mut impl Read) -> io::Result<Self> {
+    pub fn deserialize(rdr: &mut impl Read) -> io::Result<Self> {
         let lat = rdr.read_f64::<LittleEndian>()?;
         let lon = rdr.read_f64::<LittleEndian>()?;
         let elev = rdr.read_f64::<LittleEndian>()?;
@@ -42,7 +42,7 @@ impl AID {
         })
     }
 
-    fn serialize(self, wr: &mut impl Write) -> io::Result<()> {
+    pub fn serialize(self, wr: &mut impl Write) -> io::Result<()> {
         wr.write_f64::<LittleEndian>(self.lat)?;
         wr.write_f64::<LittleEndian>(self.lon)?;
         wr.write_f64::<LittleEndian>(self.elev)?;
