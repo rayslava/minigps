@@ -243,7 +243,10 @@ mod tests {
         let v = POI::deserialize(&mut f)?;
         let w: Waypoint = v.into();
 
-        assert_eq!("2022-01-15T06:59:15Z", w.time.unwrap().format().unwrap());
+        assert_eq!(
+            "2022-01-15T06:59:15.000000000Z",
+            w.time.unwrap().format().unwrap()
+        );
         assert_approx_eq!(w.point().y(), 55.789, 0.001);
         assert_approx_eq!(w.point().x(), 37.536, 0.001);
 

@@ -1,6 +1,6 @@
 [package]
 name = "minigps"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2018"
 description = "Library for MiniGPS file format support"
 authors = ["Slava Barinov <rayslava@gmail.com>"]
@@ -20,7 +20,7 @@ codecov = { repository = "rayslava/minigps", branch = "master", service = "githu
 [dependencies]
 byteorder = { version = "1.4" }
 time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
-gpx = { version = "0.8.6", features = ["use-serde"], git = "https://github.com/georust/gpx", rev = "4bc9a6f904013efb0ee623eeacd24a0cf5c66431" }  # TODO: Switch to release when it's ready
+gpx = { version = "0.9.1", features = ["use-serde"] }
 geo-types = { version = "0.7.5" }
 
 [dev-dependencies]
